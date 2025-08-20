@@ -2,18 +2,18 @@ package service
 
 import (
 	"log"
+	"strings"
 
 	"autoclick_HH/internal/hhclient"
-	repo "autoclick_HH/internal/repository"
 )
 
 type AutoService struct {
-	client   *hhclient.Client
-	repo     *repo.PostgresRepo
+	client   hhclient.HHClient
+	repo     hhclient.Repo
 	maxDaily int
 }
 
-func NewAutoService(client *hhclient.Client, repo *repo.PostgresRepo, maxDaily int) *AutoService {
+func NewAutoService(client hhclient.HHClient, repo hhclient.Repo, maxDaily int) *AutoService {
 	return &AutoService{
 		client:   client,
 		repo:     repo,
@@ -25,6 +25,11 @@ func (s *AutoService) AutoRespond(token, resumeID string, vacancies []hhclient.V
 	count := 0
 
 	for _, v := range vacancies {
+		nameLower := strings.ToLower(v.Name)
+		if !strings.Contains(nameLower, "go") && !strings.Contains(nameLower, "golang") {
+			continue
+		}
+		
 		if s.repo.AlreadyResponded(v.ID, resumeID) {
 			log.Printf("⚠️ Уже откликались на вакансию %s, пропускаем", v.ID)
 			continue
@@ -45,7 +50,7 @@ func (s *AutoService) AutoRespond(token, resumeID string, vacancies []hhclient.V
 			continue
 		}
 
-		log.Printf("✅ Откликнулись на вакансию %s", v.ID)
+		log.Printf("✅ Откликнулись на вакансию #: %s, Должность: %s", v.ID, v.Name)
 		count++
 	}
 

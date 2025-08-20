@@ -9,7 +9,7 @@ import (
 
 	"autoclick_HH/internal/config"
 	"autoclick_HH/internal/hhclient"
-	repo "autoclick_HH/internal/repository"
+	"autoclick_HH/internal/repo"
 	"autoclick_HH/internal/service"
 )
 
