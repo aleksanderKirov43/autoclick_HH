@@ -78,10 +78,10 @@ func (c *Client) GetToken() (string, error) {
 }
 
 // SearchVacancies — ищет вакансии и возвращает список
-func (c *Client) SearchVacancies(token, text string) ([]Vacancy, error) {
+func (c *Client) SearchVacancies(token string, keywords []string) ([]Vacancy, error) {
 	req, err := http.NewRequest(
 		"GET",
-		"https://api.hh.ru/vacancies?text="+url.QueryEscape(text),
+		"https://api.hh.ru/vacancies",
 		nil,
 	)
 	if err != nil {
@@ -89,6 +89,10 @@ func (c *Client) SearchVacancies(token, text string) ([]Vacancy, error) {
 	}
 
 	req.Header.Set("Authorization", "Bearer "+token)
+
+	q := req.URL.Query()
+	q.Add("text", strings.Join(keywords, " OR "))
+	req.URL.RawQuery = q.Encode()
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -98,11 +102,21 @@ func (c *Client) SearchVacancies(token, text string) ([]Vacancy, error) {
 	defer resp.Body.Close()
 
 	var vacanciesResp vacanciesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&vacanciesResp); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&vacanciesResp); err != nil {
 		return nil, err
 	}
 
-	return vacanciesResp.Items, nil
+	var filtred []Vacancy
+	for _, v := range vacanciesResp.Items {
+		title := strings.ToTitle(v.Name)
+		for _, k := range keywords {
+			if strings.Contains(title, strings.ToLower(k)) {
+				filtred = append(filtred, v)
+				break
+			}
+		}
+	}
+	return filtred, nil
 }
 
 // ApplyVacancy — отправка отклика на вакансию

@@ -2,7 +2,7 @@ package repo
 
 import (
 	"database/sql"
-	"time"
+	"log"
 )
 
 type PostgresRepo struct {
@@ -13,31 +13,28 @@ func NewPostgresRepo(db *sql.DB) *PostgresRepo {
 	return &PostgresRepo{db: db}
 }
 
-func (r *PostgresRepo) CountResponsesToday() (int, error) {
-	var count int
-	start := time.Now().Truncate(24 * time.Hour)
-	end := start.Add(24*time.Hour - time.Nanosecond)
-
-	err := r.db.QueryRow(
-		"SELECT COUNT(*) FROM responses WHERE responded_at BETWEEN $1 AND $2",
-		start, end,
-	).Scan(&count)
-	return count, err
-}
-
-func (r *PostgresRepo) AlreadyResponded(vacancyID string) (bool, error) {
+func (r *PostgresRepo) AlreadyResponded(vacancyID, resumeID string) bool {
 	var exists bool
 	err := r.db.QueryRow(
-		"SELECT EXISTS(SELECT 1 FROM responses WHERE vacancy_id=$1)",
-		vacancyID,
+		`SELECT EXISTS(
+			SELECT 1 FROM responses WHERE vacancy_id = $1 AND resume_id = $2
+		)`,
+		vacancyID, resumeID,
 	).Scan(&exists)
-	return exists, err
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Ошибка проверки дубликата: %v", err)
+		return true
+	}
+	return exists
 }
 
 func (r *PostgresRepo) SaveResponse(vacancyID, resumeID string) error {
 	_, err := r.db.Exec(
-		"INSERT INTO responses(vacancy_id, resume_id) VALUES($1, $2)",
+		`INSERT INTO responses (vacancy_id, resume_id) VALUES ($1, $2)`,
 		vacancyID, resumeID,
 	)
+	if err != nil {
+		log.Printf("Ошибка сохранения отклика: %v", err)
+	}
 	return err
 }

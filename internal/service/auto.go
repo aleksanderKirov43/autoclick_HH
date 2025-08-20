@@ -1,57 +1,52 @@
 package service
 
 import (
-	"fmt"
-	"time"
+	"log"
 
 	"autoclick_HH/internal/hhclient"
-	"autoclick_HH/internal/repository"
+	repo "autoclick_HH/internal/repository"
 )
 
 type AutoService struct {
-	client *hhclient.Client
-	repo   *repo.PostgresRepo
+	client   *hhclient.Client
+	repo     *repo.PostgresRepo
+	maxDaily int
 }
 
-const MaxDailyResponses = 20
-
-func NewAutoService(client *hhclient.Client, repo *repo.PostgresRepo) *AutoService {
+func NewAutoService(client *hhclient.Client, repo *repo.PostgresRepo, maxDaily int) *AutoService {
 	return &AutoService{
-		client: client,
-		repo:   repo,
+		client:   client,
+		repo:     repo,
+		maxDaily: maxDaily,
 	}
 }
 
 func (s *AutoService) AutoRespond(token, resumeID string, vacancies []hhclient.Vacancy) error {
-	todayCount, err := s.repo.CountResponsesToday()
-	if err != nil {
-		return fmt.Errorf("ошибка подсчета откликов: %w", err)
-	}
+	count := 0
 
 	for _, v := range vacancies {
-		if todayCount >= MaxDailyResponses {
-			fmt.Println("Достигнут лимит откликов за сегодня")
+		if s.repo.AlreadyResponded(v.ID, resumeID) {
+			log.Printf("⚠️ Уже откликались на вакансию %s, пропускаем", v.ID)
+			continue
+		}
+
+		if count >= s.maxDaily {
+			log.Printf("⛔ Достигнут лимит (%d откликов)", s.maxDaily)
 			break
 		}
 
-		already, err := s.repo.AlreadyResponded(v.ID)
-		if err != nil {
-			return fmt.Errorf("ошибка проверки вакансии: %w", err)
+		if err := s.client.ApplyVacancy(token, v.ID, resumeID); err != nil {
+			log.Printf("Ошибка отклика на %s: %v", v.ID, err)
+			continue
 		}
 
-		if !already {
-			if err := s.client.ApplyVacancy(token, v.ID, resumeID); err != nil {
-				return fmt.Errorf("ошибка отклика: %w", err)
-			}
-
-			if err := s.repo.SaveResponse(v.ID, resumeID); err != nil {
-				return fmt.Errorf("ошибка сохранения отклика: %w", err)
-			}
-
-			todayCount++
-			fmt.Printf("Отклик отправлен на вакансию [%s] %s\n", v.ID, v.Name)
-			time.Sleep(2 * time.Second)
+		if err := s.repo.SaveResponse(v.ID, resumeID); err != nil {
+			log.Printf("Ошибка сохранения отклика %s: %v", v.ID, err)
+			continue
 		}
+
+		log.Printf("✅ Откликнулись на вакансию %s", v.ID)
+		count++
 	}
 
 	return nil
