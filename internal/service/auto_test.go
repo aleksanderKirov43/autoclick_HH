@@ -198,3 +198,48 @@ func TestAutoRespond_NonGoVacancies(t *testing.T) {
 		t.Errorf("AutoRespond вернул ошибку: %v", err)
 	}
 }
+
+func TestAutoRespond_SeniorVacancies(t *testing.T) {
+	vacancies := []hhclient.Vacancy{
+		{ID: "1", Name: "Senior Golang Developer"},
+		{ID: "2", Name: "Go Backend Engineer"},
+		{ID: "3", Name: "Senior Go Developer"},
+		{ID: "4", Name: "Golang Engineer"},
+	}
+
+	client := &mockClient{
+		searchVacancies: vacancies,
+	}
+
+	repo := &mockRepo{alreadyResponded: make(map[string]bool)}
+
+	service := NewAutoService(client, repo, 5)
+
+	err := service.AutoRespond("test-token", "resume-1", vacancies)
+	if err != nil {
+		t.Errorf("AutoRespond вернул ошибку: %v", err)
+	}
+}
+
+func TestAutoRespond_MixedVacancies(t *testing.T) {
+	vacancies := []hhclient.Vacancy{
+		{ID: "1", Name: "Golang Developer"},
+		{ID: "2", Name: "Senior Go Backend Engineer"},
+		{ID: "3", Name: "Go Developer"},
+		{ID: "4", Name: "Senior Golang Engineer"},
+		{ID: "5", Name: "Backend Go Developer"},
+	}
+
+	client := &mockClient{
+		searchVacancies: vacancies,
+	}
+
+	repo := &mockRepo{alreadyResponded: make(map[string]bool)}
+
+	service := NewAutoService(client, repo, 10)
+
+	err := service.AutoRespond("test-token", "resume-1", vacancies)
+	if err != nil {
+		t.Errorf("AutoRespond вернул ошибку: %v", err)
+	}
+}

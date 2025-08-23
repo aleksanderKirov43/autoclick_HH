@@ -26,7 +26,13 @@ func (s *AutoService) AutoRespond(token, resumeID string, vacancies []hhclient.V
 
 	for _, v := range vacancies {
 		nameLower := strings.ToLower(v.Name)
+		
 		if !strings.Contains(nameLower, "go") && !strings.Contains(nameLower, "golang") {
+			continue
+		}
+		
+		if strings.Contains(nameLower, "senior") {
+			log.Printf("🚫 Пропускаем senior позицию: %s", v.Name)
 			continue
 		}
 		
