@@ -1,3 +1,6 @@
+//go:build test
+// +build test
+
 package main
 
 import (
@@ -14,7 +17,7 @@ func main() {
 	mockRepo := repo.NewMockRepo()
 
 	// сервис с лимитом 2 для теста
-	autoService := service.NewAutoService(mockClient, mockRepo, 100)
+	autoService := service.NewAutoService(mockClient, mockRepo, 2)
 
 	// получаем "токен" и вакансии
 	token, err := mockClient.GetToken()
