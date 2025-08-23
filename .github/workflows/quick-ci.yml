@@ -1,0 +1,45 @@
+name: Quick CI
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+  quick-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout кода
+      uses: actions/checkout@v4
+
+    - name: Установка Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23.0'
+
+    - name: Установка зависимостей
+      run: go mod download
+
+    - name: Проверка зависимостей
+      run: go mod verify
+
+    - name: Запуск тестов
+      run: go test ./...
+
+    - name: Сборка приложения
+      run: go build -o autoclick_HH ./cmd
+
+    - name: Проверка бинарного файла
+      run: |
+        echo "✅ Приложение успешно собрано!"
+        echo "📁 Размер: $(ls -lh autoclick_HH | awk '{print $5}')"
+        echo "🔍 Проверка: $(file autoclick_HH)"
+
+    - name: Загрузка артефактов
+      uses: actions/upload-artifact@v4
+      with:
+        name: autoclick_HH-binary
+        path: autoclick_HH
+        retention-days: 7
