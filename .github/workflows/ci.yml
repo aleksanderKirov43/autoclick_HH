@@ -1,0 +1,166 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  GO_VERSION: '1.23.0'
+
+jobs:
+  test:
+    name: Тестирование
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout кода
+      uses: actions/checkout@v4
+
+    - name: Установка Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Установка зависимостей
+      run: go mod download
+
+    - name: Проверка зависимостей
+      run: go mod verify
+
+    - name: Запуск тестов
+      run: go test -v -race -coverprofile=coverage.out ./...
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        DB_NAME: testdb
+
+    - name: Генерация отчета о покрытии
+      run: go tool cover -html=coverage.out -o coverage.html
+
+    - name: Загрузка отчета о покрытии
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage.html
+
+  build:
+    name: Сборка
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout кода
+      uses: actions/checkout@v4
+
+    - name: Установка Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Сборка приложения
+      run: go build -o autoclick_HH ./cmd
+
+    - name: Проверка размера бинарного файла
+      run: ls -la autoclick_HH
+
+    - name: Загрузка бинарного файла
+      uses: actions/upload-artifact@v3
+      with:
+        name: binary
+        path: autoclick_HH
+
+  lint:
+    name: Проверка качества кода
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout кода
+      uses: actions/checkout@v4
+
+    - name: Установка Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Установка golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: latest
+
+    - name: Запуск линтера
+      run: golangci-lint run
+
+  security:
+    name: Проверка безопасности
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout кода
+      uses: actions/checkout@v4
+
+    - name: Установка Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Проверка уязвимостей
+      run: go list -json -deps ./... | nancy sleuth
+
+  release:
+    name: Создание релиза
+    runs-on: ubuntu-latest
+    needs: [test, build, lint, security]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+    - name: Checkout кода
+      uses: actions/checkout@v4
+
+    - name: Создание тега
+      id: tag_version
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "v$(date +'%Y.%m.%d')" -m "Release $(date +'%Y.%m.%d')"
+        echo "tag=v$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
+
+    - name: Push тега
+      run: git push origin ${{ steps.tag_version.outputs.tag }}
+
+    - name: Создание GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag_version.outputs.tag }}
+        release_name: Release ${{ steps.tag_version.outputs.tag }}
+        body: |
+          Автоматический релиз от CI/CD pipeline
+          
+          ## Что нового:
+          - Автоматическая сборка и тестирование
+          - Проверка качества кода
+          - Проверка безопасности
+          
+          ## Скачать:
+          - [Linux](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag_version.outputs.tag }}/autoclick_HH)
+        draft: false
+        prerelease: false

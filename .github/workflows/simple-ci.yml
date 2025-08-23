@@ -1,0 +1,35 @@
+name: Simple CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout кода
+      uses: actions/checkout@v4
+
+    - name: Установка Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23.0'
+
+    - name: Установка зависимостей
+      run: go mod download
+
+    - name: Запуск тестов
+      run: go test ./...
+
+    - name: Сборка приложения
+      run: go build -o autoclick_HH ./cmd
+
+    - name: Проверка бинарного файла
+      run: |
+        echo "Размер бинарного файла:"
+        ls -la autoclick_HH
+        echo "✅ Приложение успешно собрано!"
