@@ -2,9 +2,9 @@ name: Simple CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ dev ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ dev ]
 
 jobs:
   test-and-build:

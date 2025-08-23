@@ -90,3 +90,11 @@ deps:
 # Полная проверка проекта
 check: deps lint test
 	@echo "$(GREEN)Все проверки пройдены успешно!$(NC)"
+
+# Информация о ветках
+info:
+	@echo "$(GREEN)Информация о проекте:$(NC)"
+	@echo "$(YELLOW)Основная ветка: dev$(NC)"
+	@echo "$(YELLOW)CI/CD: настроен для ветки dev$(NC)"
+	@echo "$(YELLOW)Тесты: make test$(NC)"
+	@echo "$(YELLOW)Сборка: make build$(NC)"
