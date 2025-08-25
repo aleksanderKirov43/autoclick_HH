@@ -4,6 +4,7 @@ type HHClient interface {
 	GetToken() (string, error)
 	SearchVacancies(token string, keywords []string) ([]Vacancy, error)
 	ApplyVacancy(token, vacancyID, resumeID string) error
+	RefreshToken(refreshToken string) (string, string, error)
 }
 
 type Repo interface {

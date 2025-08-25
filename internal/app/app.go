@@ -41,17 +41,47 @@ func Run() error {
 	const maxDaily = 100
 	autoService := service.NewAutoService(client, pgRepo, maxDaily)
 
-	token, err := client.GetToken()
-	if err != nil {
-		return fmt.Errorf("ошибка получения токена: %w", err)
+	// Токен: приоритет — access → refresh → password grant
+	var token string
+	if cfg.AccessToken != "" {
+		token = cfg.AccessToken
+		if len(token) > 8 {
+			log.Printf("Используем выданный access_token, prefix=%q", token[:8])
+		} else {
+			log.Printf("Используем выданный access_token")
+		}
+	} else if cfg.RefreshToken != "" {
+		log.Printf("Обновляем токен по refresh_token…")
+		newAccess, newRefresh, rerr := client.RefreshToken(cfg.RefreshToken)
+		if rerr != nil {
+			return fmt.Errorf("ошибка обновления токена: %w", rerr)
+		}
+		token = newAccess
+		// Сообщаем префиксы для ручного обновления .env пользователем
+		if len(newAccess) > 8 {
+			log.Printf("Новый access_token prefix=%q", newAccess[:8])
+		}
+		if len(newRefresh) > 8 {
+			log.Printf("Новый refresh_token prefix=%q (обновите .env при необходимости)", newRefresh[:8])
+		}
+	} else {
+		var gerr error
+		token, gerr = client.GetToken()
+		if gerr != nil {
+			return fmt.Errorf("ошибка получения токена: %w", gerr)
+		}
+		log.Println("Успешная авторизация по логину/паролю")
 	}
-	log.Println("Успешная авторизация")
 
 	// основной фильтр
-	keywords := []string{"go", "golang"}
+	keywords := []string{"go", "golang", "golang developer", "go разработчик"}
 	vacancies, err := client.SearchVacancies(token, keywords)
 	if err != nil {
 		return fmt.Errorf("ошибка поиска вакансий: %w", err)
+	}
+	log.Printf("Найдено вакансий: %d", len(vacancies))
+	for i := 0; i < len(vacancies) && i < 3; i++ {
+		log.Printf("Пример #%d: %s", i+1, vacancies[i].Name)
 	}
 
 	if err := autoService.AutoRespond(token, cfg.ResumeID, vacancies); err != nil {

@@ -17,6 +17,8 @@ type Config struct {
 	DBUser       string
 	DBPassword   string
 	DBName       string
+	AccessToken  string
+	RefreshToken string
 }
 
 func Load() (*Config, error) {
@@ -33,5 +35,7 @@ func Load() (*Config, error) {
 		DBUser:       os.Getenv("DB_USER"),
 		DBPassword:   os.Getenv("DB_PASSWORD"),
 		DBName:       os.Getenv("DB_NAME"),
+		AccessToken:  os.Getenv("HH_ACCESS_TOKEN"),
+		RefreshToken: os.Getenv("HH_REFRESH_TOKEN"),
 	}, nil
 }
