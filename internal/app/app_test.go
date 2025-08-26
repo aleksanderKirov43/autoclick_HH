@@ -94,6 +94,10 @@ func (m *errorMockClient) ApplyVacancy(token, vacancyID, resumeID string) error 
 	return &mockError{message: "apply error"}
 }
 
+func (m *errorMockClient) RefreshToken(refreshToken string) (string, string, error) {
+	return "", "", &mockError{message: "refresh error"}
+}
+
 // Простая структура ошибки для тестирования
 type mockError struct {
 	message string

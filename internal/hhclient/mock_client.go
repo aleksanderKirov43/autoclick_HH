@@ -21,3 +21,7 @@ func (m *MockClient) ApplyVacancy(token, vacancyID, resumeID string) error {
 	fmt.Printf("Mock отклик на вакансию %s резюме %s\n", vacancyID, resumeID)
 	return nil
 }
+
+func (m *MockClient) RefreshToken(refreshToken string) (string, string, error) {
+	return "new-access-token", "new-refresh-token", nil
+}

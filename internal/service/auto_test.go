@@ -13,6 +13,7 @@ type mockClient struct {
 	searchError     error
 	applyError      error
 	searchVacancies []hhclient.Vacancy
+	refreshToken    error
 }
 
 func (m *mockClient) GetToken() (string, error) {
@@ -31,6 +32,13 @@ func (m *mockClient) SearchVacancies(token string, keywords []string) ([]hhclien
 
 func (m *mockClient) ApplyVacancy(token, vacancyID, resumeID string) error {
 	return m.applyError
+}
+
+func (m *mockClient) RefreshToken(refreshToken string) (string, string, error) {
+	if m.refreshToken != nil {
+		return "", "", m.refreshToken
+	}
+	return "new-access-token", "new-refresh-token", nil
 }
 
 // Mock репозиторий для тестирования
