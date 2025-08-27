@@ -24,18 +24,21 @@ func NewAutoService(client hhclient.HHClient, repo hhclient.Repo, maxDaily int) 
 func (s *AutoService) AutoRespond(token, resumeID string, vacancies []hhclient.Vacancy) error {
 	count := 0
 
-	// Список исключений 
+	// Список исключений по должностям
 	excluded := []string{"senior", "администратор", "курьер", "кассир", "автор", "менеджер", "руководитель", "бариста", "архитектор"}
+
+	// Список компаний, на которые не нужно откликаться
+	excludedCompanies := []string{"ozone", "wildberries", "т-банк", "мтс", "магнит", "суточно.ру"}
 
 	for _, v := range vacancies {
 		nameLower := strings.ToLower(v.Name)
 
-		// откликаемся только на Go/Golang
+		// Проверка на Go/Golang
 		if !strings.Contains(nameLower, "go") && !strings.Contains(nameLower, "golang") {
 			continue
 		}
 
-		// проверка по исключениям
+		// Проверка по исключениям в названии вакансии
 		skip := false
 		for _, word := range excluded {
 			if strings.Contains(nameLower, word) {
@@ -48,25 +51,42 @@ func (s *AutoService) AutoRespond(token, resumeID string, vacancies []hhclient.V
 			continue
 		}
 
-		// проверка дубля
+		// Проверка по исключениям компаний
+		// Для этого нужно получить название компании. Предполагаем, что оно есть в v.Employer.Name
+		companyName := ""
+		if v.Employer.Name != "" {
+			companyName = strings.ToLower(v.Employer.Name)
+		}
+		for _, exclCompany := range excludedCompanies {
+			if strings.Contains(companyName, exclCompany) {
+				log.Printf("🚫 Пропускаем вакансию от компании (%s): %s", exclCompany, v.Employer.Name)
+				skip = true
+				break
+			}
+		}
+		if skip {
+			continue
+		}
+
+		// Проверка дубля
 		if s.repo.AlreadyResponded(v.ID, resumeID) {
 			log.Printf("⚠️ Уже откликались на вакансию %s, пропускаем", v.ID)
 			continue
 		}
 
-		// проверка лимита
+		// Проверка лимита
 		if count >= s.maxDaily {
 			log.Printf("⛔ Достигнут лимит (%d откликов)", s.maxDaily)
 			break
 		}
 
-		// откликаемся
+		// Откликаемся
 		if err := s.client.ApplyVacancy(token, v.ID, resumeID); err != nil {
 			log.Printf("Ошибка отклика на %s: %v", v.ID, err)
 			continue
 		}
 
-		// сохраняем факт отклика
+		// Сохраняем факт отклика
 		if err := s.repo.SaveResponse(v.ID, resumeID); err != nil {
 			log.Printf("Ошибка сохранения отклика %s: %v", v.ID, err)
 			continue
@@ -78,4 +98,3 @@ func (s *AutoService) AutoRespond(token, resumeID string, vacancies []hhclient.V
 
 	return nil
 }
-
