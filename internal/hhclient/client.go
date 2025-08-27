@@ -228,6 +228,8 @@ func (c *Client) SearchVacancies(token string, keywords []string) ([]Vacancy, er
 		q.Add("text", strings.Join(keywords, " OR "))
 		q.Add("area", "113")
 		q.Add("search_field", "name")
+		// Фильтруем только удалённые вакансии
+		q.Add("schedule", "remote")
 		q.Add("per_page", strconv.Itoa(perPage))
 		q.Add("page", strconv.Itoa(page))
 		req.URL.RawQuery = q.Encode()
