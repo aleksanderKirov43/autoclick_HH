@@ -28,7 +28,7 @@ func (s *AutoService) AutoRespond(token, resumeID string, vacancies []hhclient.V
 	excluded := []string{"senior", "администратор", "курьер", "кассир", "автор", "менеджер", "руководитель", "бариста", "архитектор", "дизайнер"}
 
 	// Список компаний, на которые не нужно откликаться
-	excludedCompanies := []string{"ozone", "wildberries", "т-банк", "мтс", "магнит", "суточно.ру"}
+	excludedCompanies := []string{"ozon", "wildberries", "т-банк", "мтс", "магнит", "суточно.ру"}
 
 	for _, v := range vacancies {
 		nameLower := strings.ToLower(v.Name)
