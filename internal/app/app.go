@@ -37,8 +37,8 @@ func Run() error {
 	pgRepo := repo.NewPostgresRepo(db)
 	client := hhclient.New(cfg.ClientID, cfg.ClientSecret, cfg.Username, cfg.Password)
 
-	// Лимит на запуск — передаём явно (100)
-	const maxDaily = 100
+	// Лимит на запуск — передаём явно (200)
+	const maxDaily = 200
 	autoService := service.NewAutoService(client, pgRepo, maxDaily)
 
 	// Токен: приоритет — access → refresh → password grant
