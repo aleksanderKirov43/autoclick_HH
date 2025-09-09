@@ -73,18 +73,6 @@ func Run() error {
 		}
 		log.Println("Успешная авторизация по логину/паролю")
 	}
-
-	newAccess, newRefresh, rerr := client.RefreshToken(cfg.RefreshToken)
-	if rerr != nil {
-		return fmt.Errorf("ошибка обновления токена: %w", rerr)
-	}
-	token = newAccess
-
-	// Сохраняем токены
-	if err := config.SaveTokens(newAccess, newRefresh); err != nil {
-		log.Printf("⚠️ Не удалось сохранить токены: %v", err)
-	}
-
 	// основной фильтр
 	keywords := []string{"go", "golang", "golang developer", "go разработчик"}
 	//vacancies, err := client.SearchVacancies(token, keywords)
