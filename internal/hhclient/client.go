@@ -244,6 +244,13 @@ func (c *Client) SearchVacancies(token string, keywords []string) ([]Vacancy, er
 			return nil, fmt.Errorf("vacancies %s: %s", resp.Status, string(body))
 		}
 
+		if resp.StatusCode == http.StatusForbidden {
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 500))
+			if strings.Contains(string(body), "token-expired") {
+				return nil, fmt.Errorf("access_token истёк")
+			}
+		}
+
 		var vr vacanciesResponse
 		if err = json.NewDecoder(resp.Body).Decode(&vr); err != nil {
 			resp.Body.Close()

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 
 	_ "github.com/lib/pq"
 
@@ -73,12 +74,40 @@ func Run() error {
 		log.Println("Успешная авторизация по логину/паролю")
 	}
 
+	newAccess, newRefresh, rerr := client.RefreshToken(cfg.RefreshToken)
+	if rerr != nil {
+		return fmt.Errorf("ошибка обновления токена: %w", rerr)
+	}
+	token = newAccess
+
+	// Сохраняем токены
+	if err := config.SaveTokens(newAccess, newRefresh); err != nil {
+		log.Printf("⚠️ Не удалось сохранить токены: %v", err)
+	}
+
 	// основной фильтр
 	keywords := []string{"go", "golang", "golang developer", "go разработчик"}
+	//vacancies, err := client.SearchVacancies(token, keywords)
+	//if err != nil {
+	//	return fmt.Errorf("ошибка поиска вакансий: %w", err)
+	//}
 	vacancies, err := client.SearchVacancies(token, keywords)
+	if err != nil && strings.Contains(err.Error(), "истёк") {
+		log.Println("🔄 Токен истёк, пробуем обновить…")
+		newAccess, newRefresh, rerr := client.RefreshToken(cfg.RefreshToken)
+		if rerr != nil {
+			return fmt.Errorf("ошибка повторного обновления токена: %w", rerr)
+		}
+		token = newAccess
+		if err := config.SaveTokens(newAccess, newRefresh); err != nil {
+			log.Printf("⚠️ Не удалось сохранить токены: %v", err)
+		}
+		vacancies, err = client.SearchVacancies(token, keywords)
+	}
 	if err != nil {
 		return fmt.Errorf("ошибка поиска вакансий: %w", err)
 	}
+
 	log.Printf("Найдено вакансий: %d", len(vacancies))
 	for i := 0; i < len(vacancies) && i < 3; i++ {
 		log.Printf("Пример #%d: %s", i+1, vacancies[i].Name)
@@ -90,4 +119,5 @@ func Run() error {
 
 	log.Println("✅ Работа завершена. Перезапусти приложение через 24 часа.")
 	return nil
+
 }
