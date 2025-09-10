@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 
@@ -73,15 +74,15 @@ func Run() error {
 		}
 		log.Println("Успешная авторизация по логину/паролю")
 	}
-	// основной фильтр
+
 	keywords := []string{"go", "golang", "golang developer", "go разработчик"}
-	//vacancies, err := client.SearchVacancies(token, keywords)
-	//if err != nil {
-	//	return fmt.Errorf("ошибка поиска вакансий: %w", err)
-	//}
+
 	vacancies, err := client.SearchVacancies(token, keywords)
-	if err != nil && strings.Contains(err.Error(), "истёк") {
+	if err != nil && strings.Contains(err.Error(), "403") {
 		log.Println("🔄 Токен истёк, пробуем обновить…")
+
+		time.Sleep(2 * time.Second)
+
 		newAccess, newRefresh, rerr := client.RefreshToken(cfg.RefreshToken)
 		if rerr != nil {
 			return fmt.Errorf("ошибка повторного обновления токена: %w", rerr)

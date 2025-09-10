@@ -1,17 +1,27 @@
 package config
 
 import (
-	"fmt"
+	"bytes"
+	"log"
 	"os"
+	"strings"
 )
 
 func SaveTokens(access, refresh string) error {
-	f, err := os.OpenFile(".env", os.O_WRONLY|os.O_APPEND, 0644)
+	data, err := os.ReadFile(".env")
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-
-	_, err = fmt.Fprintf(f, "\nACCESS_TOKEN=%s\nREFRESH_TOKEN=%s\n", access, refresh)
-	return err
+	lines := strings.Split(string(data), "\n")
+	var buf bytes.Buffer
+	for _, line := range lines {
+		if strings.HasPrefix(line, "HH_ACCESS_TOKEN=") || strings.HasPrefix(line, "HH_REFRESH_TOKEN=") {
+			continue // удаляем старые токены
+		}
+		buf.WriteString(line + "\n")
+	}
+	buf.WriteString("HH_ACCESS_TOKEN=" + access + "\n")
+	buf.WriteString("HH_REFRESH_TOKEN=" + refresh + "\n")
+	log.Println("✅ Токены успешно обновлены в .env")
+	return os.WriteFile(".env", buf.Bytes(), 0644)
 }
