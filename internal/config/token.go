@@ -23,5 +23,5 @@ func SaveTokens(access, refresh string) error {
 	buf.WriteString("HH_ACCESS_TOKEN=" + access + "\n")
 	buf.WriteString("HH_REFRESH_TOKEN=" + refresh + "\n")
 	log.Println("✅ Токены успешно обновлены в .env")
-	return os.WriteFile(".env", buf.Bytes(), 0644)
+	return os.WriteFile(".env", buf.Bytes(), 0600)
 }
